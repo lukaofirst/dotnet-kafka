@@ -15,7 +15,7 @@ public class KafkaProducer(ILogger<BaseKafka> baseLogger,
 	{
 		try
 		{
-			var producer = GetProducer();
+			var producer = GetProducer;
 			await EnsureTopic(topicName);
 
 			var message = new Message<Null, string>

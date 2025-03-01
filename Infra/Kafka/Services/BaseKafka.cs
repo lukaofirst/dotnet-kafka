@@ -7,6 +7,9 @@ namespace Infra.Kafka.Services;
 
 public abstract class BaseKafka
 {
+	private protected IProducer<Null, string> GetProducer { get; }
+	private protected IConsumer<Ignore, string> GetConsumer { get; }
+
 	private readonly ILogger _logger;
 	private readonly IConfiguration _configuration;
 
@@ -14,6 +17,9 @@ public abstract class BaseKafka
 	private readonly string _groupId;
 	private readonly int _retentionInMs;
 	private readonly int _numPartitions;
+
+	private readonly IAdminClient _adminClient;
+	private readonly List<string> _topics;
 
 	public BaseKafka(ILogger logger, IConfiguration configuration)
 	{
@@ -24,15 +30,27 @@ public abstract class BaseKafka
 		_groupId = _configuration["Kafka:GroupId"]!;
 		_retentionInMs = int.Parse(_configuration["Kafka:RetentionInMs"]!);
 		_numPartitions = int.Parse(_configuration["Kafka:NumPartitions"]!);
+
+		_adminClient = new AdminClientBuilder(AdminClientConfig).Build();
+
+		GetProducer = new ProducerBuilder<Null, string>(ProducerConfig).Build();
+		GetConsumer = new ConsumerBuilder<Ignore, string>(ConsumerConfig).Build();
+
+		_topics = [.. _adminClient.GetMetadata(TimeSpan.FromSeconds(1)).Topics.Select(x => x.Topic)];
 	}
 
-	private ProducerConfig GetProducerConfig => new()
+	private AdminClientConfig AdminClientConfig => new()
+	{
+		BootstrapServers = _connStr
+	};
+
+	private ProducerConfig ProducerConfig => new()
 	{
 		BootstrapServers = _connStr,
 		Acks = Acks.Leader,
 	};
 
-	private protected ConsumerConfig GetConsumerConfig => new()
+	private ConsumerConfig ConsumerConfig => new()
 	{
 		BootstrapServers = _connStr,
 		GroupId = _groupId,
@@ -40,26 +58,11 @@ public abstract class BaseKafka
 		AutoCommitIntervalMs = 1000
 	};
 
-	private AdminClientConfig GetAdminClientConfig => new()
-	{
-		BootstrapServers = _connStr
-	};
-
-	private protected IProducer<Null, string> GetProducer()
-	{
-		var producer = new ProducerBuilder<Null, string>(GetProducerConfig).Build();
-
-		return producer;
-	}
-
 	private protected async Task EnsureTopic(string topicName)
 	{
 		try
 		{
-			var adminClient = new AdminClientBuilder(GetAdminClientConfig).Build();
-			var topics = adminClient.GetMetadata(TimeSpan.FromSeconds(1)).Topics;
-
-			var topicExist = topics.Any(x => x.Topic.Equals(topicName));
+			var topicExist = _topics.Any(x => x.Equals(topicName));
 
 			if (!topicExist)
 			{
@@ -76,7 +79,8 @@ public abstract class BaseKafka
 					}
 				};
 
-				await adminClient.CreateTopicsAsync(new[] { topicSpec });
+				await _adminClient.CreateTopicsAsync([topicSpec]);
+				_topics.Add(topicName);
 			}
 		}
 		catch (CreateTopicsException ex)

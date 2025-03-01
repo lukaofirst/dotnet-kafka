@@ -15,7 +15,7 @@ public class KafkaConsumer(ILogger<BaseKafka> baseLogger,
 	{
 		try
 		{
-			var consumer = new ConsumerBuilder<Ignore, string>(GetConsumerConfig).Build();
+			var consumer = GetConsumer;
 			await EnsureTopic(topicName);
 
 			return consumer;
