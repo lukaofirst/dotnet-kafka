@@ -1,29 +1,20 @@
-using Application.HostedServices;
 using Application.Interfaces;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Services
+namespace Application.Services;
+
+public class PersonConsumerService(ILogger<PersonConsumerService> logger) : IPersonConsumerService
 {
-	public class PersonConsumerService : IPersonConsumerService
+	public Task InitConsumer(string topicName, Message<Ignore, string>? kafkaMessage)
 	{
-		private readonly ILogger<PersonConsumerService> _logger;
-
-		public PersonConsumerService(ILogger<PersonConsumerService> logger)
+		if (kafkaMessage is not null)
 		{
-			_logger = logger;
+			var messageBody = kafkaMessage.Value;
+
+			logger.LogInformation("----- Consumed message: {messageBody} -----", messageBody);
 		}
 
-		public Task InitConsumer(string topicName, Message<Ignore, string>? kafkaMessage)
-		{
-			if (kafkaMessage is not null)
-			{
-				var messageBody = kafkaMessage.Value;
-
-				Console.WriteLine($"----- Consumed message: {messageBody} -----");
-			}
-
-			return Task.CompletedTask;
-		}
+		return Task.CompletedTask;
 	}
 }

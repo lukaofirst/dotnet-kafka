@@ -2,27 +2,19 @@ using Core.Entities;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Controllers
+namespace Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class PersonController(IPersonEventService personEventService) : ControllerBase
 {
-	[ApiController]
-	[Route("api/[controller]")]
-	public class PersonController : ControllerBase
+	private readonly string _topicName = "Person-Topic";
+
+	[HttpPost]
+	public async Task<IActionResult> Post(Person person)
 	{
-		private readonly IPersonEventService _personEventService;
+		await personEventService.ProduceEvent(_topicName, person);
 
-		private readonly string _topicName = "Person-Topic";
-
-		public PersonController(IPersonEventService personEventService)
-		{
-			_personEventService = personEventService;
-		}
-
-		[HttpPost]
-		public async Task<IActionResult> Post(Person person)
-		{
-			await _personEventService.ProduceEvent(_topicName, person);
-
-			return NoContent();
-		}
+		return NoContent();
 	}
 }

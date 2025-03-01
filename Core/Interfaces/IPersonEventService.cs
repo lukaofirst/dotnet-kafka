@@ -1,9 +1,8 @@
 using Core.Entities;
 
-namespace Core.Interfaces
+namespace Core.Interfaces;
+
+public interface IPersonEventService
 {
-	public interface IPersonEventService
-	{
-		Task ProduceEvent(string topicName, Person person);
-	}
+	Task ProduceEvent(string topicName, Person person);
 }

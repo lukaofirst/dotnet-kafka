@@ -3,35 +3,28 @@ using Infra.Kafka.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace Infra.Kafka.Services
+namespace Infra.Kafka.Services;
+
+public class KafkaConsumer(ILogger<BaseKafka> baseLogger,
+	ILogger<KafkaConsumer> logger,
+	IConfiguration configuration) : BaseKafka(baseLogger, configuration), IKafkaConsumer
 {
-	public class KafkaConsumer : BaseKafka, IKafkaConsumer
+	private readonly ILogger _logger = logger;
+
+	public async Task<IConsumer<Ignore, string>>? CreateConsumer(string topicName)
 	{
-		private readonly ILogger _logger;
-
-		public KafkaConsumer(ILogger<BaseKafka> baseLogger,
-			ILogger<KafkaConsumer> logger,
-			IConfiguration configuration)
-			: base(baseLogger, configuration)
+		try
 		{
-			_logger = logger;
+			var consumer = new ConsumerBuilder<Ignore, string>(GetConsumerConfig).Build();
+			await EnsureTopic(topicName);
+
+			return consumer;
 		}
-
-		public async Task<IConsumer<Ignore, string>>? CreateConsumer(string topicName)
+		catch (Exception ex)
 		{
-			try
-			{
-				var consumer = new ConsumerBuilder<Ignore, string>(GetConsumerConfig).Build();
-				await EnsureTopic(topicName);
+			_logger.LogError("Could not create consumer - {ex}", ex);
 
-				return consumer;
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError("Could not create consumer - {ex}", ex);
-
-				return null!;
-			}
+			return null!;
 		}
 	}
 }

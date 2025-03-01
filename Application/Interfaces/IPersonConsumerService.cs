@@ -1,9 +1,8 @@
 using Confluent.Kafka;
 
-namespace Application.Interfaces
+namespace Application.Interfaces;
+
+public interface IPersonConsumerService
 {
-	public interface IPersonConsumerService
-	{
-		Task InitConsumer(string topicName, Message<Ignore, string>? kafkaMessage);
-	}
+	Task InitConsumer(string topicName, Message<Ignore, string>? kafkaMessage);
 }

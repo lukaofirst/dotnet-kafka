@@ -4,58 +4,46 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Application.HostedServices
+namespace Application.HostedServices;
+
+public class PersonHostedService(ILogger<PersonHostedService> logger,
+	IServiceScopeFactory serviceScopeFactory,
+	IKafkaConsumer kafkaConsumer) : BackgroundService
 {
-	public class PersonHostedService : BackgroundService
+	private readonly string _topicName = "Person-Topic";
+
+	protected override Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		private readonly ILogger<PersonHostedService> _logger;
-		private readonly IServiceScopeFactory _serviceScopeFactory;
-		private readonly IKafkaConsumer _kafkaConsumer;
+		logger.LogInformation("Starting {service}", nameof(PersonHostedService));
 
-		private readonly string _topicName = "Person-Topic";
+		var task = Task.Run(() => ProcessTopicAsync(stoppingToken), stoppingToken);
 
-		public PersonHostedService(ILogger<PersonHostedService> logger,
-			IServiceScopeFactory serviceScopeFactory,
-			IKafkaConsumer kafkaConsumer)
+		return task;
+	}
+
+	private async Task ProcessTopicAsync(CancellationToken stoppingToken)
+	{
+		using var consumer = await kafkaConsumer.CreateConsumer(_topicName)!;
+		consumer.Subscribe(_topicName);
+
+		try
 		{
-			_logger = logger;
-			_serviceScopeFactory = serviceScopeFactory;
-			_kafkaConsumer = kafkaConsumer;
-		}
-
-		protected override Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			_logger.LogInformation("Starting {service}", nameof(PersonHostedService));
-
-			var task = Task.Run(() => ProcessTopicAsync(stoppingToken), stoppingToken);
-
-			return task;
-		}
-
-		private async Task ProcessTopicAsync(CancellationToken stoppingToken)
-		{
-			using var consumer = await _kafkaConsumer.CreateConsumer(_topicName)!;
-			consumer.Subscribe(_topicName);
-
-			try
+			while (!stoppingToken.IsCancellationRequested)
 			{
-				while (!stoppingToken.IsCancellationRequested)
-				{
-					var consumerResult = consumer.Consume(stoppingToken);
+				var consumerResult = consumer.Consume(stoppingToken);
 
-					using var scope = _serviceScopeFactory.CreateScope();
-					var personConsumerService = scope.ServiceProvider.GetRequiredService<IPersonConsumerService>();
+				using var scope = serviceScopeFactory.CreateScope();
+				var personConsumerService = scope.ServiceProvider.GetRequiredService<IPersonConsumerService>();
 
-					personConsumerService.InitConsumer(_topicName, consumerResult.Message);
-				}
+				await personConsumerService.InitConsumer(_topicName, consumerResult.Message);
 			}
-			catch (Exception ex)
-			{
-				_logger.LogError("Could not execute {service}: {ex}", nameof(PersonHostedService), ex);
+		}
+		catch (Exception ex)
+		{
+			logger.LogError("Could not execute {service}: {ex}", nameof(PersonHostedService), ex);
 
-				consumer.Close();
-				consumer.Dispose();
-			}
+			consumer.Close();
+			consumer.Dispose();
 		}
 	}
 }

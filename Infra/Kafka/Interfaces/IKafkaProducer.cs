@@ -1,7 +1,6 @@
-namespace Infra.Kafka.Interfaces
+namespace Infra.Kafka.Interfaces;
+
+public interface IKafkaProducer
 {
-	public interface IKafkaProducer
-	{
-		Task ProduceEvent(string topicName, string messageBody);
-	}
+	Task ProduceEvent(string topicName, string messageBody);
 }

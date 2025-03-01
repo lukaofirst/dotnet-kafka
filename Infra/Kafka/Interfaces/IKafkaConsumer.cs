@@ -1,9 +1,8 @@
 using Confluent.Kafka;
 
-namespace Infra.Kafka.Interfaces
+namespace Infra.Kafka.Interfaces;
+
+public interface IKafkaConsumer
 {
-	public interface IKafkaConsumer
-	{
-		Task<IConsumer<Ignore, string>>? CreateConsumer(string topicName);
-	}
+	Task<IConsumer<Ignore, string>>? CreateConsumer(string topicName);
 }
