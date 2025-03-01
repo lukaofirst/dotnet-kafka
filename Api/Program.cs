@@ -27,7 +27,7 @@ builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
 builder.Services.AddSingleton<IKafkaConsumer, KafkaConsumer>();
 
 builder.Services.AddScoped<IPersonConsumerService, PersonConsumerService>();
-//builder.Services.AddHostedService<PersonHostedService>();
+builder.Services.AddHostedService<PersonHostedService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
